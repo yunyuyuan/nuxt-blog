@@ -15,7 +15,7 @@
     "local:migrate-content": "gulp migrate-content"
   },
   "dependencies": {
-    "nuxt": "^4.4.7",
+    "nuxt": "~4.4.7",
     "@yunyuyuan/nuxt-blog": "^9.0.0"
   },
   "devDependencies": {

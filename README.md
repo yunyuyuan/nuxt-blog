@@ -37,13 +37,15 @@
 
 | 方式 | 适合 | 升级方法 |
 | --- | --- | --- |
-| starter 模板（推荐新用户使用） | 只修改配置和内容，不改框架代码 | `pnpm add @yunyuyuan/nuxt-blog@^<主版本号>` |
+| starter 模板（推荐新用户使用） | 只修改配置和内容，不改框架代码 | 修改 `package.json` 中 `@yunyuyuan/nuxt-blog` 的主版本号 |
 | fork 本仓库 | 需要修改框架代码 | 在 GitHub 上点击 "Sync fork" |
 
-**starter 模板**：框架以 npm 包 `@yunyuyuan/nuxt-blog` 的形式安装，站点仓库中只有 `config.ts`、内容和部署配置。详见 [starter/README.md](/starter/README.md)。
+**starter 模板**：框架以 npm 包 `@yunyuyuan/nuxt-blog` 的形式安装，站点仓库中只有 `config.ts`、内容和部署配置。打开模板仓库 [yunyuyuan/nuxt-blog-starter](https://github.com/yunyuyuan/nuxt-blog-starter)，点击 "Use this template" 创建自己的仓库。这种方式不需要本地环境。详见 [starter/README.md](/starter/README.md)。
+
+也可以在本地创建：
 
 ```bash
-npx giget@latest "gh:yunyuyuan/nuxt-blog/starter#master" my-blog
+npx giget@latest gh:yunyuyuan/nuxt-blog-starter my-blog
 ```
 
 **fork**：框架代码在 `layer/` 目录中，站点的文件在根目录中。如果只修改根目录的文件，同步上游时的冲突会少很多。
@@ -96,7 +98,7 @@ npx giget@latest "gh:yunyuyuan/nuxt-blog/starter#master" my-blog
   - `/scripts` 本地脚本（`pnpm local:*`），由 Gulp 执行
   - `/vite-plugins` 开发模式下，把后台的提交写入本地文件
   - `/public/sticker` 所有表情图片
-- `/starter` 新站点的模板，依赖 npm 包 `@yunyuyuan/nuxt-blog`
+- `/starter` 新站点的模板，依赖 npm 包 `@yunyuyuan/nuxt-blog`。每次发布新版本后，发版脚本把它推送到模板仓库 [yunyuyuan/nuxt-blog-starter](https://github.com/yunyuyuan/nuxt-blog-starter)
 - `/config.ts` 博客配置，必须修改
 - `/public`
   - `/rebuild` 所有博客数据。`articles/`、`records/`、`knowledges/` 中每个条目一个 md 文件，元数据写在文件开头的 YAML frontmatter 中。`json/` 中的索引在构建时生成，不提交到仓库

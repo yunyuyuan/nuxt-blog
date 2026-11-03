@@ -204,8 +204,9 @@
   "how-to-upgrade": "如何升级",
   "upgrade-step-1": "进入你的仓库网站",
   "upgrade-step-2": "点击 \"Sync fork\" → 点击 \"Update branch\"",
-  "upgrade-npm-step-1": "在本地仓库中运行：",
-  "upgrade-npm-step-2": "提交 package.json 和 pnpm-lock.yaml，部署平台会自动重新构建。",
+  "upgrade-npm-web": "方式一：在 GitHub 上打开下面的 package.json，把依赖改为下面的值，然后提交。如果仓库中有 pnpm-lock.yaml，请用方式二。",
+  "upgrade-npm-local": "方式二：在本地仓库中运行下面的命令，然后提交 package.json 和 pnpm-lock.yaml。",
+  "upgrade-npm-rebuild": "提交后，部署平台会自动重新构建。",
   "images": "图片",
   "commit-conflict": "仓库有新的提交，本次修改未提交。请暂存修改后刷新页面",
   "deploy-behind-head": "线上站点还没有部署最新提交。后台读取的是仓库最新内容，可以继续提交"

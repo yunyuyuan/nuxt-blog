@@ -6,10 +6,12 @@ Repository and documentation: https://github.com/yunyuyuan/nuxt-blog
 
 ## Create a site
 
-Start from the starter template:
+Open the template repository [yunyuyuan/nuxt-blog-starter](https://github.com/yunyuyuan/nuxt-blog-starter) and click "Use this template". You do not need a local environment for this. Then follow the README of the new repository.
+
+Or create the site locally:
 
 ```bash
-npx giget@latest "gh:yunyuyuan/nuxt-blog/starter#master" my-blog
+npx giget@latest gh:yunyuyuan/nuxt-blog-starter my-blog
 cd my-blog
 pnpm install
 pnpm dev
@@ -34,7 +36,7 @@ Put Vite options for the server build in `vite.$server`, not in `vite`. For exam
 
 ## Upgrade
 
-Major versions can change the content format or the configuration. Read the [CHANGELOG](https://github.com/yunyuyuan/nuxt-blog/blob/master/CHANGELOG.md), then:
+Major versions can change the content format or the configuration. Read the [CHANGELOG](https://github.com/yunyuyuan/nuxt-blog/blob/master/CHANGELOG.md), then change the range of `@yunyuyuan/nuxt-blog` in `package.json` to the new major version, for example `"^10.0.0"`. Without a local environment, edit `package.json` on GitHub. If the repository has `pnpm-lock.yaml`, run this command locally instead, and commit `package.json` and `pnpm-lock.yaml`:
 
 ```bash
 pnpm add @yunyuyuan/nuxt-blog@^<new major version>

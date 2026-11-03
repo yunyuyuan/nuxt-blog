@@ -48,9 +48,9 @@ jobs:
         run: test -f .output/public/404.html
   starter:
     # Installs the starter like a new user does: @yunyuyuan/nuxt-blog from a packed tarball
-    # instead of the workspace, and no lockfile, so it also gets the latest
-    # compatible Nuxt. The copy is outside this repository, so pnpm does not use
-    # the workspace of this repository.
+    # instead of the workspace, and no lockfile, so it gets the newest Nuxt that the
+    # range in starter/package.json allows. The copy is outside this repository, so
+    # pnpm does not use the workspace of this repository.
     if: ${{ github.repository == 'yunyuyuan/nuxt-blog' }}
     runs-on: ubuntu-24.04
     steps:

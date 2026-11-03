@@ -203,8 +203,9 @@
   "how-to-upgrade": "How to Upgrade",
   "upgrade-step-1": "Go to your repository website",
   "upgrade-step-2": "Click \"Sync fork\" → Click \"Update branch\"",
-  "upgrade-npm-step-1": "In your local repository, run:",
-  "upgrade-npm-step-2": "Commit package.json and pnpm-lock.yaml. Your deployment platform then rebuilds the site.",
+  "upgrade-npm-web": "Option 1: open package.json below on GitHub, change the dependency to the value below, and commit. If your repository has pnpm-lock.yaml, use option 2.",
+  "upgrade-npm-local": "Option 2: in your local repository, run the command below, then commit package.json and pnpm-lock.yaml.",
+  "upgrade-npm-rebuild": "After the commit, your deployment platform rebuilds the site.",
   "images": "Images",
   "commit-conflict": "The repository has new commits, so this change was not committed. Stage your changes and reload the page",
   "deploy-behind-head": "The site has not deployed the latest commit yet. Manage reads the latest repository content, so you can keep committing"

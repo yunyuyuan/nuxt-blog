@@ -37,13 +37,15 @@ There are two ways to set up a blog:
 
 | Way | Use it when | Upgrade |
 | --- | --- | --- |
-| Starter template (recommended for new users) | You change only the configuration and the content | `pnpm add @yunyuyuan/nuxt-blog@^<major version>` |
+| Starter template (recommended for new users) | You change only the configuration and the content | Change the major version of `@yunyuyuan/nuxt-blog` in `package.json` |
 | Fork this repository | You change the framework code | Click "Sync fork" on GitHub |
 
-**Starter template**: the framework is installed as the npm package `@yunyuyuan/nuxt-blog`. Your repository contains only `config.ts`, your content and the deployment configuration. See [starter/README.md](/starter/README.md).
+**Starter template**: the framework is installed as the npm package `@yunyuyuan/nuxt-blog`. Your repository contains only `config.ts`, your content and the deployment configuration. Open the template repository [yunyuyuan/nuxt-blog-starter](https://github.com/yunyuyuan/nuxt-blog-starter) and click "Use this template" to create your repository. You do not need a local environment for this. See [starter/README.md](/starter/README.md).
+
+You can also create the site locally:
 
 ```bash
-npx giget@latest "gh:yunyuyuan/nuxt-blog/starter#master" my-blog
+npx giget@latest gh:yunyuyuan/nuxt-blog-starter my-blog
 ```
 
 **Fork**: the framework code is in `layer/`, and the files of the site are in the root directory. If you change only the files in the root directory, syncing with upstream causes far fewer conflicts.
@@ -96,7 +98,7 @@ Blog principle example:
   - `/scripts` Local scripts (`pnpm local:*`), executed by Gulp
   - `/vite-plugins` In development mode, writes commits from the admin pages to the local files
   - `/public/sticker` All emoji images
-- `/starter` Template for new sites, depends on the npm package `@yunyuyuan/nuxt-blog`
+- `/starter` Template for new sites, depends on the npm package `@yunyuyuan/nuxt-blog`. After each release, the release script pushes it to the template repository [yunyuyuan/nuxt-blog-starter](https://github.com/yunyuyuan/nuxt-blog-starter)
 - `/config.ts` Blog configuration, must be modified
 - `/public`
   - `/rebuild` All blog data. `articles/`, `records/` and `knowledges/` contain one md file for each item, with the metadata in YAML frontmatter at the start of the file. The build generates the indexes in `json/`; they are not committed

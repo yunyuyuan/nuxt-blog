@@ -1,6 +1,6 @@
 {
   "name": "@yunyuyuan/nuxt-blog",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "description": "A blog framework based on Nuxt: GitHub as the CMS, static deployment, encrypted posts. Use it as a Nuxt layer.",
   "keywords": [
     "nuxt",

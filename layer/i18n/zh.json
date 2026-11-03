@@ -18,6 +18,8 @@
   "config-algolia-search-key": "Search Key",
   "config-cf-analyze": "Cloudflare Analytics Token",
   "config-comment-category-id": "Discussion Category ID",
+  "config-comment-repo": "评论所在的仓库",
+  "config-comment-repo-desc": "格式为 owner/name。留空时使用 GitHub 账户名/仓库名。只有评论不在博客仓库中时才需要填写，例如从模板新建仓库后，评论仍在旧仓库中。它要与 CommentRepoId 指向同一个仓库。",
   "config-comment-repo-id": "Discussion Repo ID",
   "config-default-lang": "默认语言",
   "config-domain": "RSS 域名",

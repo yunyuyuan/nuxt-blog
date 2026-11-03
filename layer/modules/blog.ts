@@ -11,7 +11,7 @@ import { withBase } from "ufo";
 import { generateFeeds, themeColorsCSS, uploadAlgoliaIndex } from "../scripts/nuxt-hooks";
 import { loadBlogConfig, setBlogContext } from "../scripts/utils/context";
 import { rebuild } from "../vite-plugins";
-import type { BlogConfig } from "../app/utils/common/blog-config";
+import { type BlogConfig, commentRepo, REPO_FULL_NAME } from "../app/utils/common/blog-config";
 import { getNowDayjsString } from "../app/utils/common/dayjs";
 import { HeaderTabs, type HeaderTabUrl } from "../app/utils/common/tabs";
 import type { CommonItem } from "../app/utils/common/types";
@@ -140,6 +140,9 @@ export default defineNuxtModule({
 
     const config = await loadBlogConfig(rootDir);
     setBlogContext({ rootDir, config });
+    if (config.CommentRepo?.trim() && !REPO_FULL_NAME.test(config.CommentRepo.trim())) {
+      logger.warn(`config.ts: CommentRepo "${config.CommentRepo}" is not in the format owner/name. The comments will not load.`);
+    }
 
     addHead(nuxt, config, baseURL);
 
@@ -203,6 +206,7 @@ export default defineNuxtModule({
       __NB_DATABASE_ENABLED__: !!process.env.CLOUDFLARE_D1_TOKEN && !!process.env.CLOUDFLARE_D1_ACCOUNT_ID && !!process.env.CLOUDFLARE_D1_DATABASE_ID,
       __NB_CMTREPOID__: config.CommentRepoId,
       __NB_CMTREPOCATEID__: config.CommentDiscussionCategoryId,
+      __NB_CMTREPO__: commentRepo(config),
       __NB_ALGOLIA_APP_ID__: config.algoliaSearch.appId,
       __NB_ALGOLIA_SEARCH_KEY__: config.algoliaSearch.searchKey,
       __NB_ALGOLIA_INDEX_NAME__: config.algoliaSearch.indexName,

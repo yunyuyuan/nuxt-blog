@@ -1,3 +1,5 @@
+## [v9.1.0] 2026.11.03
+* New optional `CommentRepo` in `config.ts`: the repository (`owner/name`) that holds the giscus comments. Leave it empty to use `githubName/githubRepo`, as before. Set it when the comments are in another repository, for example after you create a new repository from the template and keep the comments in the old one. `CommentRepoId` must be the ID of the same repository.
 ## [v9] 2026.10.23
 * **Breaking**: v8 and earlier versions are no longer supported, and there are no upgrade steps from them. Create a new site from `starter/`.
 * The framework code moved to `layer/` and is published as the npm package `@yunyuyuan/nuxt-blog` (a Nuxt layer). The root directory is still a complete site.

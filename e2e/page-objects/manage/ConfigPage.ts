@@ -10,6 +10,10 @@ export class ManageConfigPage extends ManageBasePage {
     await this.fillInput("config-title-input", title);
   }
 
+  async setCommentRepo(repo: string) {
+    await this.fillInput("config-CommentRepo-input", repo);
+  }
+
   async clickUpdate() {
     await this.clickElement("update-config-btn");
   }

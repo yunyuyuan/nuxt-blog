@@ -20,7 +20,8 @@ jobs:
     # Only run when TARGET_BRANCH is unset, or the current branch matches it.
     # When this condition is false the job is *skipped* (not failed), so no
     # failure notification is sent.
-    if: ${{ vars.TARGET_BRANCH == '' || github.ref == format('refs/heads/{0}', vars.TARGET_BRANCH) }}
+    # The template repository yunyuyuan/nuxt-blog-starter itself does not deploy.
+    if: ${{ github.repository != 'yunyuyuan/nuxt-blog-starter' && (vars.TARGET_BRANCH == '' || github.ref == format('refs/heads/{0}', vars.TARGET_BRANCH)) }}
     env:
       # Base URL for the deployed site.
       # Use "/" for a user/organization site or a site served from the domain root.

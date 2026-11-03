@@ -3,6 +3,7 @@
 //   pnpm release                     发布 layer/package.json 中的当前版本
 //   pnpm release <x.y.z>             先把版本改成 x.y.z，再发布
 //   pnpm release patch|minor|major   按规则递增版本，再发布
+//   pnpm release --starter-only      不发布，只把 starter/ 推送到模板仓库（例如发布后推送模板失败时）
 //
 // 选项：
 //   --dry-run        只做检查、打包和预览。不修改文件，不发布，不推送
@@ -11,6 +12,7 @@
 //
 // 脚本先完成所有检查，再打包并用 npm publish --dry-run 预览，输入版本号确认后才发布。
 // 发布的是预览过的同一个 tarball。发布成功后，才提交版本号、打 tag 并推送。
+// 最后把 starter/ 作为一个新 commit 推送到 GitHub 模板仓库，所以模板只在发布新版本后更新。
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -23,6 +25,9 @@ const PACKAGE = "@yunyuyuan/nuxt-blog";
 const TARBALL_PREFIX = PACKAGE.replace(/^@/, "").replace("/", "-");
 const REPO = "yunyuyuan/nuxt-blog";
 const BRANCH = "master";
+// GitHub 模板仓库，内容是发布时的 starter/。用户在这个仓库中点击 "Use this template" 创建站点
+const STARTER_REPO = "yunyuyuan/nuxt-blog-starter";
+const STARTER_BRANCH = "main";
 // 固定为官方 registry。本地如果配置了镜像（例如 npmmirror），发布到镜像会失败
 const REGISTRY = "https://registry.npmjs.org/";
 // .github/workflows/check.yml 中的 job。starter job 用打包后的 layer 安装和构建 starter
@@ -35,7 +40,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const layerPkgPath = path.join(root, "layer", "package.json");
 const isWindows = process.platform === "win32";
 
-const USAGE = `用法：pnpm release [<x.y.z> | patch | minor | major] [--dry-run] [--skip-ci] [--remote <name>]`;
+const USAGE = `用法：pnpm release [<x.y.z> | patch | minor | major] [--dry-run] [--skip-ci] [--remote <name>]
+      pnpm release --starter-only [--dry-run] [--remote <name>]`;
 
 class ReleaseError extends Error {}
 
@@ -101,13 +107,15 @@ function bumpVersion(version, kind) {
 }
 
 function parseArgs(argv) {
-  const options = { target: null, dryRun: false, skipCi: false, remote: "origin", help: false };
+  const options = { target: null, dryRun: false, skipCi: false, starterOnly: false, remote: "origin", help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--dry-run") {
       options.dryRun = true;
     } else if (arg === "--skip-ci") {
       options.skipCi = true;
+    } else if (arg === "--starter-only") {
+      options.starterOnly = true;
     } else if (arg === "--remote") {
       options.remote = argv[++i];
       if (!options.remote) {
@@ -124,6 +132,9 @@ function parseArgs(argv) {
     } else {
       options.target = arg;
     }
+  }
+  if (options.starterOnly && options.target) {
+    fail(`--starter-only 不发布，不能同时指定版本\n${USAGE}`);
   }
   return options;
 }
@@ -152,6 +163,17 @@ function checkGit(remote) {
     fail(`本地 ${BRANCH}（${head.slice(0, 7)}）与 ${remote}/${BRANCH}（${remoteHead.slice(0, 7)}）不一致。请先 pull 或 push`);
   }
   return head;
+}
+
+/** 模板仓库的地址，与上游 remote 使用相同的协议，所以推送时用同样的凭据。checkGit 已经确认 remote 指向 REPO */
+function starterUrl(remote) {
+  const url = git("remote", "get-url", remote);
+  return url.replace(new RegExp(`([/:])${REPO}(\\.git)?/?$`), `$1${STARTER_REPO}.git`);
+}
+
+/** 模板仓库中 STARTER_BRANCH 的 commit。分支还不存在（空仓库）时返回空字符串 */
+function starterHead(url) {
+  return git("ls-remote", url, `refs/heads/${STARTER_BRANCH}`).split(/\s+/)[0] || "";
 }
 
 function checkTag(remote, tag) {
@@ -194,6 +216,41 @@ function npmPackageInfo() {
   return { versions: list(data.versions), maintainers: list(data.maintainers).map(m => String(m).split(" ")[0]) };
 }
 
+function readStarterPackage() {
+  return JSON.parse(fs.readFileSync(path.join(root, "starter", "package.json"), "utf8"));
+}
+
+/** starter 依赖的框架版本范围要包含 version */
+function checkStarterRange(version) {
+  const major = parseVersion(version)[0];
+  const range = readStarterPackage().dependencies?.[PACKAGE] || "";
+  const rangeMajor = /^\^(\d+)\./.exec(range);
+  if (!rangeMajor || Number(rangeMajor[1]) !== major) {
+    fail(`starter/package.json 中 ${PACKAGE} 的版本范围是 "${range}"，不包含 ${version}。请改成 "^${major}.0.0"`);
+  }
+}
+
+/**
+ * 模板中没有 lockfile，starter/package.json 中 nuxt 的范围决定用户安装哪个 Nuxt。
+ * 这个范围只接受补丁更新（~），并且与根目录 pnpm-lock.yaml 中测试过的 Nuxt 属于同一个小版本
+ */
+function checkStarterNuxt() {
+  const lock = fs.readFileSync(path.join(root, "pnpm-lock.yaml"), "utf8");
+  const importer = /^importers:\n\n {2}\.:\n([\s\S]*?)\n\n(?=\S| {2}\S)/m.exec(lock)?.[1] || "";
+  const locked = /\n {6}nuxt:\n {8}specifier: .+\n {8}version: (\d+\.\d+\.\d+)/.exec(`\n${importer}`)?.[1];
+  if (!locked) {
+    fail("pnpm-lock.yaml 中没有找到根目录的 nuxt 版本");
+  }
+  const range = readStarterPackage().dependencies?.nuxt || "";
+  const match = /^~(\d+)\.(\d+)\.(\d+)$/.exec(range);
+  const [major, minor, patch] = parseVersion(locked);
+  if (!match || Number(match[1]) !== major || Number(match[2]) !== minor || Number(match[3]) > patch) {
+    fail(`starter/package.json 中 nuxt 的版本范围是 "${range}"，请改成 "~${locked}"。`
+      + `模板中没有 lockfile，这个范围决定用户安装的 Nuxt，要与根目录 pnpm-lock.yaml 中测试过的 ${locked} 属于同一个小版本`);
+  }
+  return range;
+}
+
 /** 后台的升级提示按 CHANGELOG 判断主版本；starter 的依赖范围要包含新版本 */
 function checkMajorVersion(version) {
   const major = parseVersion(version)[0];
@@ -206,12 +263,50 @@ function checkMajorVersion(version) {
     fail(`CHANGELOG.md 中最新的条目是 v${match[1]}，要发布的主版本是 v${major}。`
       + `后台的升级提示用 CHANGELOG.md 判断主版本，请先在 CHANGELOG.md 中加入 ## [v${major}]`);
   }
-  const starter = JSON.parse(fs.readFileSync(path.join(root, "starter", "package.json"), "utf8"));
-  const range = starter.dependencies?.[PACKAGE] || "";
-  const rangeMajor = /^\^(\d+)\./.exec(range);
-  if (!rangeMajor || Number(rangeMajor[1]) !== major) {
-    fail(`starter/package.json 中 ${PACKAGE} 的版本范围是 "${range}"，不包含 ${version}。请改成 "^${major}.0.0"`);
+  checkStarterRange(version);
+}
+
+/**
+ * 把 commit 中的 starter/ 作为一个新 commit 推送到模板仓库。新 commit 的父 commit 是模板仓库当前的 HEAD，
+ * 所以推送是 fast-forward。内容没有变化时不推送
+ */
+function syncStarter(url, commit, label, dryRun) {
+  const tree = git("rev-parse", `${commit}:starter`);
+  const head = starterHead(url);
+  if (head) {
+    run("git", ["fetch", "--quiet", "--no-tags", url, `refs/heads/${STARTER_BRANCH}`], { capture: true });
+    if (git("rev-parse", `${head}^{tree}`) === tree) {
+      console.log(`${STARTER_REPO} 中的内容与 starter/ 相同，不需要推送`);
+      return;
+    }
   }
+  if (dryRun) {
+    console.log(`--dry-run：不推送。会把 ${commit.slice(0, 7)} 的 starter/ 推送到 ${url} 的 ${STARTER_BRANCH}`);
+    return;
+  }
+  const message = `${label}\n\nstarter/ of ${REPO}@${commit}`;
+  const created = git("commit-tree", tree, ...(head ? ["-p", head] : []), "-m", message);
+  run("git", ["push", url, `${created}:refs/heads/${STARTER_BRANCH}`]);
+  console.log(`已推送：https://github.com/${STARTER_REPO}/commit/${created}`);
+}
+
+/** 只推送模板仓库：starter/ 依赖的框架主版本必须已经发布到 npm */
+function starterOnly(options) {
+  step("检查 git");
+  const sha = checkGit(options.remote);
+  console.log(`${BRANCH} 与 ${options.remote}/${BRANCH} 一致：${sha.slice(0, 7)}`);
+
+  step("检查 starter/");
+  const latest = npmPackageInfo().versions.filter(v => parseVersion(v)).sort(compareVersions).at(-1);
+  if (!latest) {
+    fail(`${PACKAGE} 还没有发布过。模板依赖 npm 上的包，请先发布`);
+  }
+  checkStarterRange(latest);
+  console.log(`nuxt：${checkStarterNuxt()}；${PACKAGE}：npm 上的最新版本 ${latest}`);
+
+  step(`推送 starter/ 到 ${STARTER_REPO}`);
+  const label = run("git", ["describe", "--tags", "--match", "v*"], { capture: true, allowFail: true }).stdout || sha.slice(0, 7);
+  syncStarter(starterUrl(options.remote), sha, label, options.dryRun);
 }
 
 /** 通过 GitHub 的公开 API 检查这个 commit 的 CI 结果，不需要登录 */
@@ -282,6 +377,10 @@ async function main() {
   if (Number(process.versions.node.split(".")[0]) < 22) {
     fail(`需要 Node.js 22 或更高版本，当前是 ${process.versions.node}`);
   }
+  if (options.starterOnly) {
+    starterOnly(options);
+    return;
+  }
 
   step("检查 git");
   const sha = checkGit(options.remote);
@@ -322,6 +421,12 @@ async function main() {
   const bumped = target !== current;
   console.log(bumped ? `${current} -> ${target}` : `${target}（layer/package.json 中的当前版本）`);
 
+  step("检查模板仓库");
+  console.log(`starter/package.json 中 nuxt 的范围：${checkStarterNuxt()}`);
+  const templateUrl = starterUrl(options.remote);
+  const templateHead = starterHead(templateUrl);
+  console.log(`${STARTER_REPO}：${templateHead ? `${STARTER_BRANCH} 在 ${templateHead.slice(0, 7)}` : "还是空仓库"}`);
+
   step("检查 CI");
   if (options.skipCi) {
     console.log("已跳过（--skip-ci）");
@@ -346,7 +451,8 @@ async function main() {
 包：      ${PACKAGE}@${target}
 npm 账号：${user}
 commit：  ${sha.slice(0, 7)}${bumped ? `，发布后提交 "chore(release): ${tag}"` : ""}
-tag：     ${tag}，发布后推送到 ${options.remote}`);
+tag：     ${tag}，发布后推送到 ${options.remote}
+模板仓库：发布后把 starter/ 推送到 ${STARTER_REPO} 的 ${STARTER_BRANCH}`);
     if (options.dryRun) {
       console.log("\n--dry-run：到此结束。没有修改文件，没有发布，也没有推送。");
       return;
@@ -384,7 +490,15 @@ tag：     ${tag}，发布后推送到 ${options.remote}`);
     }
   }
 
-  console.log(`\n完成：${PACKAGE}@${target} 已发布，tag ${tag} 已推送。`);
+  step(`推送 starter/ 到 ${STARTER_REPO}`);
+  try {
+    syncStarter(templateUrl, git("rev-parse", "HEAD"), tag, false);
+  } catch (error) {
+    fail(`${PACKAGE}@${target} 已经发布，tag ${tag} 已推送，但模板仓库没有更新：${error.message}\n`
+      + `修好后运行：pnpm release --starter-only`);
+  }
+
+  console.log(`\n完成：${PACKAGE}@${target} 已发布，tag ${tag} 已推送，模板仓库已更新。`);
   console.log(`查看：https://www.npmjs.com/package/${PACKAGE}/v/${target}`);
 }
 

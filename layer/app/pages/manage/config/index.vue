@@ -8,10 +8,12 @@ import config from "~~/config";
 import { translate } from "#layers/nuxt-blog/app/utils/nuxt/i18n";
 import { createDiffModal, useStatusText } from "#layers/nuxt-blog/app/utils/nuxt/manage";
 import { deepClone, useCommonSEOTitle } from "#layers/nuxt-blog/app/utils/nuxt/utils";
+import type { BlogConfig } from "#layers/nuxt-blog/app/utils/common/blog-config";
 
 useCommonSEOTitle(computed(() => translate("config-manage")));
 
-const form = reactive(deepClone(config));
+// 旧的 config.ts 可能没有 CommentRepo（v9.1.0 加入）
+const form = reactive({ ...deepClone(config as BlogConfig), CommentRepo: (config as BlogConfig).CommentRepo ?? "" });
 const aboutText = ref(config.about.join("\n"));
 
 const TAILWIND_COLORS = [
@@ -49,6 +51,7 @@ const generatedConfig = computed(() => `export default {
   CloudflareAnalyze: ${str(form.CloudflareAnalyze)}, // cloudflare的统计，https://developers.cloudflare.com/analytics/web-analytics
   CommentRepoId: ${str(form.CommentRepoId)}, // 评论系统，参考 https://github.com/yunyuyuan/nuxt-blog/wiki/2.3-%E8%AF%84%E8%AE%BA%E7%B3%BB%E7%BB%9F
   CommentDiscussionCategoryId: ${str(form.CommentDiscussionCategoryId)}, // 评论系统
+  CommentRepo: ${str(form.CommentRepo)}, // 评论所在的仓库，格式为 owner/name，留空时使用 githubName/githubRepo
 
   database: { // 参考 https://github.com/yunyuyuan/nuxt-blog/wiki/2.4-%E6%B5%8F%E8%A7%88%E9%87%8F%E7%BB%9F%E8%AE%A1
     initialVisitors: ${Number(form.database.initialVisitors) || 0}, // 如果设置成10000，那么发一篇文章立马就有10000个浏览量！
@@ -157,7 +160,8 @@ const textSections: TextSection[] = [
     link: "https://github.com/yunyuyuan/nuxt-blog/wiki/2.3-%E8%AF%84%E8%AE%BA%E7%B3%BB%E7%BB%9F",
     fields: [
       { key: "CommentRepoId", label: "config-comment-repo-id", model: toRef(form, "CommentRepoId") },
-      { key: "CommentDiscussionCategoryId", label: "config-comment-category-id", model: toRef(form, "CommentDiscussionCategoryId") }
+      { key: "CommentDiscussionCategoryId", label: "config-comment-category-id", model: toRef(form, "CommentDiscussionCategoryId") },
+      { key: "CommentRepo", label: "config-comment-repo", model: toRef(form, "CommentRepo"), desc: "config-comment-repo-desc", placeholder: "owner/name" }
     ]
   },
   {

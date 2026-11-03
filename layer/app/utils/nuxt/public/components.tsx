@@ -2,7 +2,6 @@ import { Calendar, Eye, FileText } from "lucide-vue-next";
 import type { CommonItem } from "../../common/types";
 import { formatTime } from "../format-time";
 import { watchUntil } from "../utils";
-import config from "~~/config";
 import { translate } from "#layers/nuxt-blog/app/utils/nuxt/i18n";
 
 export function Visitors(props: { visitors?: number }) {
@@ -83,7 +82,8 @@ export const Comments = defineComponent({
 
       const script = document.createElement("script");
       script.src = "https://giscus.app/client.js";
-      script.setAttribute("data-repo", `${config.githubName}/${__NB_GITHUB_REPO__}`);
+      // config.ts 的 CommentRepo，留空时是 githubName/githubRepo（modules/blog.ts）
+      script.setAttribute("data-repo", __NB_CMTREPO__);
       script.setAttribute("data-repo-id", __NB_CMTREPOID__);
       script.setAttribute("data-category", "Announcements");
       script.setAttribute("data-category-id", __NB_CMTREPOCATEID__);

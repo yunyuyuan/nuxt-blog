@@ -22,5 +22,16 @@ describe("Config Editing", async () => {
 
     expect(configPage.requestAdditions[0]?.path).toBe("config.ts");
     expect(configPage.getCommittedConfig()).toContain("title: \"test-config-title\"");
+    // 没有填写时，CommentRepo 是空字符串（评论使用 githubName/githubRepo）
+    expect(configPage.getCommittedConfig()).toContain("CommentRepo: \"\",");
+  });
+
+  it("commits CommentRepo to config.ts", async () => {
+    const { configPage } = await createConfigPage(configPath());
+
+    await configPage.setCommentRepo("someone/old-blog");
+    await configPage.clickUpdate();
+
+    expect(configPage.getCommittedConfig()).toContain("CommentRepo: \"someone/old-blog\",");
   });
 });

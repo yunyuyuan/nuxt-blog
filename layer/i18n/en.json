@@ -18,6 +18,8 @@
   "config-algolia-search-key": "Search Key",
   "config-cf-analyze": "Cloudflare Analytics Token",
   "config-comment-category-id": "Discussion Category ID",
+  "config-comment-repo": "Comment repository",
+  "config-comment-repo-desc": "Format: owner/name. Leave it empty to use the GitHub account name and repository name. Set it only when the comments are not in the blog repository, for example when you create a new repository from the template and the comments stay in the old one. It must be the same repository as CommentRepoId.",
   "config-comment-repo-id": "Discussion Repo ID",
   "config-default-lang": "Default Language",
   "config-domain": "RSS Domain",

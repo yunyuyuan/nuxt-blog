@@ -15,6 +15,9 @@ const changelogUrl = `https://github.com/${OfficialRepo}/blob/master/CHANGELOG.m
 const repoUrl = `https://github.com/${config.githubName}/${__NB_GITHUB_REPO__}`;
 // 从 npm 安装（starter）时修改依赖的版本号；fork 本仓库时同步上游
 const fromNpm = __NB_LAYER_FROM_NPM__;
+// GitHub 把 HEAD 解析为默认分支
+const packageJsonUrl = `${repoUrl}/blob/HEAD/package.json`;
+const upgradeRange = computed(() => `"@yunyuyuan/nuxt-blog": "^${props.newVersion}.0.0"`);
 const upgradeCommand = computed(() => `pnpm add @yunyuyuan/nuxt-blog@^${props.newVersion}`);
 </script>
 
@@ -59,17 +62,32 @@ const upgradeCommand = computed(() => `pnpm add @yunyuyuan/nuxt-blog@^${props.ne
             <CircleFadingArrowUp class="size-5" />
             {{ $t('how-to-upgrade') }}
           </h4>
-          <ol
+          <div
             v-if="fromNpm"
             data-testid="upgrade-steps-npm"
-            class="list-decimal space-y-2 pl-5 text-dark-700 dark:text-dark-300"
+            class="space-y-4 text-dark-700 dark:text-dark-300"
           >
-            <li>
-              {{ $t('upgrade-npm-step-1') }}
+            <div class="space-y-1">
+              <p>{{ $t('upgrade-npm-web') }}</p>
+              <a
+                :href="packageJsonUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                <span>{{ packageJsonUrl }}</span>
+                <ExternalLink class="size-3" />
+              </a>
+              <div>
+                <code class="rounded bg-dark-100 px-1.5 py-0.5 text-sm dark:bg-dark-800">{{ upgradeRange }}</code>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <p>{{ $t('upgrade-npm-local') }}</p>
               <code class="rounded bg-dark-100 px-1.5 py-0.5 text-sm dark:bg-dark-800">{{ upgradeCommand }}</code>
-            </li>
-            <li>{{ $t('upgrade-npm-step-2') }}</li>
-          </ol>
+            </div>
+            <p>{{ $t('upgrade-npm-rebuild') }}</p>
+          </div>
           <template v-else>
             <ol
               data-testid="upgrade-steps-fork"

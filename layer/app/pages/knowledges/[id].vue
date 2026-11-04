@@ -2,11 +2,11 @@
 import { Link } from "lucide-vue-next";
 import type { KnowledgeItem } from "#layers/nuxt-blog/app/utils/common/types";
 import { useContentPage } from "#layers/nuxt-blog/app/utils/nuxt/public/detail";
-import { Visitors, Comments, WroteDate } from "#layers/nuxt-blog/app/utils/nuxt/public/components";
+import { Comments, MarkdownHtml, Visitors, WroteDate } from "#layers/nuxt-blog/app/utils/nuxt/public/components";
 import { useCommonSEOTitle } from "#layers/nuxt-blog/app/utils/nuxt/utils";
 import { initViewer } from "#layers/nuxt-blog/app/utils/nuxt/viewer";
 
-const { item, decrypted, markdownRef, htmlContent, description, visitors } = await useContentPage<KnowledgeItem>();
+const { item, decrypted, bindMarkdownEl, htmlContent, description, visitors } = await useContentPage<KnowledgeItem>();
 useCommonSEOTitle(() => item.title, undefined, description);
 
 const root = ref<HTMLElement>();
@@ -50,10 +50,11 @@ initViewer(root);
 
         <div class="mb-6 border-t border-dark-200 dark:border-dark-700" />
 
-        <article
-          ref="markdownRef"
+        <MarkdownHtml
+          :ref="bindMarkdownEl"
+          tag="article"
+          :html="htmlContent"
           :class="twMerge('--markdown', 'mb-2 max-w-full')"
-          v-html="htmlContent"
         />
       </div>
     </article>

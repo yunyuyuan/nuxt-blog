@@ -1,4 +1,5 @@
 import { Calendar, Eye, FileText } from "lucide-vue-next";
+import { h } from "vue";
 import type { CommonItem } from "../../common/types";
 import { formatTime } from "../format-time";
 import { watchUntil } from "../utils";
@@ -40,6 +41,24 @@ export function WroteDate(props: { item: CommonItem }) {
     </span>
   );
 }
+
+/**
+ * 输出正文 HTML，用来代替模板中的 v-html。
+ * Vue 3.5.39 起，水合时会对模板中的动态 prop 重新调用 patchProp（vuejs/core#9083）。v-html 编译出的
+ * innerHTML 也是动态 prop，所以服务端输出的正文会被重新赋值一次，所有子节点重建，iframe 因此重新加载。
+ * 渲染函数创建的 vnode 没有 dynamicProps，水合时保留服务端的 DOM；html 变化时，Vue 照常比较新旧值后更新。
+ * 这里不用 JSX，避免 JSX 插件生成 patchFlag。
+ */
+export const MarkdownHtml = defineComponent({
+  name: "MarkdownHtml",
+  props: {
+    tag: { type: String, default: "div" },
+    html: { type: String, required: true }
+  },
+  setup (props) {
+    return () => h(props.tag, { innerHTML: props.html });
+  }
+});
 
 export const Comments = defineComponent({
   name: 'Comments',

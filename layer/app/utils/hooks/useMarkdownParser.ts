@@ -1,5 +1,6 @@
 // 公式样式随 Markdown 渲染一起加载（详情页和编辑器），不再放进全局入口 CSS
 import "katex/dist/katex.min.css";
+import type { ComponentPublicInstance } from "vue";
 import { parseMarkdown } from "../common/markdown";
 import { afterInsertHtml } from "../nuxt/markdown";
 import { isPrerender } from "../nuxt/constants";
@@ -46,6 +47,11 @@ const waitUntilConnected = (element: HTMLElement, signal: AbortSignal) => {
 
 export const useMarkdownParser = async ({ mdValueRef, fromEdit, onAfterInsertHtml, destroyFns, initial }: useMarkdownParserProps) => {
   const markdownRef = ref<HTMLElement>();
+  // 详情页的正文由 MarkdownHtml 组件输出，模板中 ref 拿到的是组件实例，这里取它的根元素
+  const bindMarkdownEl = (target: Element | ComponentPublicInstance | null) => {
+    const element = target instanceof Element ? target : target?.$el;
+    markdownRef.value = element instanceof HTMLElement ? element : undefined;
+  };
 
   const htmlContent = ref("");
   const menuItems = ref<Awaited<ReturnType<typeof parseMarkdown>>["menu"]>([]);
@@ -145,6 +151,7 @@ export const useMarkdownParser = async ({ mdValueRef, fromEdit, onAfterInsertHtm
 
   return {
     markdownRef,
+    bindMarkdownEl,
     htmlContent,
     menuItems
   };

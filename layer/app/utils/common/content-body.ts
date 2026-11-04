@@ -30,6 +30,19 @@ export function itemDirPath(tab: HeaderTabUrl) {
   return `public/rebuild${tab}`;
 }
 
+/** 构建时生成的索引（不提交到仓库）相对仓库根目录的路径 */
+export function indexFilePath(tab: HeaderTabUrl) {
+  return `public/rebuild/json${tab}.json`;
+}
+
+/**
+ * 构建时与索引一起生成：条目文件名 → 这个文件的 git blob oid。
+ * 后台列表用它判断哪些条目在部署之后改过，只下载这些条目的原文。
+ */
+export function oidMapFilePath(tab: HeaderTabUrl) {
+  return `public/rebuild/json${tab}.oids.json`;
+}
+
 /** 解析条目文件路径；不是条目文件时返回 null */
 export function parseItemFilePath(path: string): { tab: HeaderTabUrl; id: number } | null {
   const m = /^public\/rebuild(\/[a-z]+)\/(\d+)\.md$/.exec(path);

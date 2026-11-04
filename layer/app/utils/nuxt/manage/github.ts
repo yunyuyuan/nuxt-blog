@@ -1,11 +1,11 @@
 import { encode } from "js-base64";
 import { itemFilePath } from "../../common/content-body";
-import { invalidateHeadCache, setHeadReader, type HeadDirEntry } from "../fetch";
+import { invalidateHeadCache, setHeadReader, type HeadTreeEntry } from "../fetch";
 import { formatTime } from "../format-time";
 import { translate } from "../i18n";
 import { notify } from "../notify";
 import { getCurrentTab } from "../utils";
-import { AuthorQuery, buildCommitInput, CreateCommitMutation, HeadDirectoryQuery, type AuthorQueryData, type CreateCommitData, type HeadDirectoryData } from "./github-queries";
+import { AuthorQuery, buildBlobsQuery, buildCommitInput, CreateCommitMutation, HeadTreeQuery, type AuthorQueryData, type BlobsData, type CreateCommitData, type HeadTreeData } from "./github-queries";
 import { createDiffModal } from ".";
 import config from "~~/config";
 import type { CommitParams, CommonItem, CommitParamsAddition } from "#layers/nuxt-blog/app/utils/common/types";
@@ -59,12 +59,11 @@ async function readRepoFile(token: string, repoPath: string): Promise<string> {
 }
 
 /**
- * 读取仓库目录在 useRemoteLatestSha 这个提交时的全部文件（GraphQL 一次请求）。
- * GitHub 会截断过大的文件内容；这些文件改用 readRepoFile 单独读取。
+ * 读取仓库目录在 useRemoteLatestSha 这个提交时的文件名和 oid（GraphQL 一次请求，不读文件内容）。
  */
-async function readRepoDir(token: string, repoDir: string): Promise<HeadDirEntry[]> {
+async function readRepoTree(token: string, repoDir: string): Promise<HeadTreeEntry[]> {
   const ref = useRemoteLatestSha().value || __NB_GIT_BRANCH__;
-  const result = await post<HeadDirectoryData>(HeadDirectoryQuery, {
+  const result = await post<HeadTreeData>(HeadTreeQuery, {
     owner: config.githubName,
     name: __NB_GITHUB_REPO__,
     expression: `${ref}:${repoDir}`
@@ -74,12 +73,35 @@ async function readRepoDir(token: string, repoDir: string): Promise<HeadDirEntry
   }
   // 目录不存在时 object 为 null；路径是文件时没有 entries
   const entries = result.data?.repository?.object?.entries ?? [];
-  return Promise.all(entries.filter(e => e.type === "blob").map(async ({ name, object }) => ({
-    name,
-    text: object?.isTruncated || typeof object?.text !== "string"
-      ? await readRepoFile(token, `${repoDir}/${name}`)
-      : object.text
-  })));
+  return entries.filter(e => e.type === "blob").map(({ name, oid }) => ({ name, oid }));
+}
+
+/** 一次 GraphQL 请求最多读取的文件数 */
+const BLOBS_PER_QUERY = 50;
+
+/**
+ * 按 oid 读取一个目录中这些文件的原文，每 BLOBS_PER_QUERY 个文件一次请求。
+ * GitHub 会截断过大的文件内容，找不到 oid 时返回 null；这些文件改用 readRepoFile 单独读取。
+ */
+async function readRepoBlobs(token: string, repoDir: string, entries: HeadTreeEntry[]): Promise<string[]> {
+  const parts: HeadTreeEntry[][] = [];
+  for (let i = 0; i < entries.length; i += BLOBS_PER_QUERY) {
+    parts.push(entries.slice(i, i + BLOBS_PER_QUERY));
+  }
+  const texts = await Promise.all(parts.map(async (part) => {
+    const { query, variables } = buildBlobsQuery(part.map(e => e.oid));
+    const result = await post<BlobsData>(query, { owner: config.githubName, name: __NB_GITHUB_REPO__, ...variables }, token);
+    if (result.errors?.length) {
+      throw new Error(result.errors.map(e => e.message).join("; "));
+    }
+    return Promise.all(part.map(async (e, i) => {
+      const blob = result.data?.repository?.[`b${i}`];
+      return blob && !blob.isTruncated && typeof blob.text === "string"
+        ? blob.text
+        : await readRepoFile(token, `${repoDir}/${e.name}`);
+    }));
+  }));
+  return texts.flat();
 }
 
 /** @description 是否管理员 */
@@ -108,7 +130,8 @@ export async function isAuthor(token: string): Promise<boolean> {
     // 此后后台从这个提交读取内容。若线上站点还没部署到这个提交，页面已经读过的是旧内容，重新挂载一次
     setHeadReader({
       file: path => readRepoFile(token, path),
-      dir: dir => readRepoDir(token, dir)
+      tree: dir => readRepoTree(token, dir),
+      blobs: (dir, entries) => readRepoBlobs(token, dir, entries)
     });
     if (headOid && headOid !== __NB_CURRENT_GIT_SHA__) {
       reloadManagePage();

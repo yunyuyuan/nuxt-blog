@@ -1,3 +1,5 @@
+## [v9.1.1] 2026.11.04
+* The admin list pages download much less from GitHub. Before, they downloaded every item file of the directory. Now they read only the file names and git blob oids, and download only the items that were added or changed after the last deployment. The other items use the metadata in the deployed index. The build writes the oids next to the indexes, in `public/rebuild/json/{tab}.oids.json`. A site built with an earlier version has no oid files; its admin list pages download every item file, as before, until the next build.
 ## [v9.1.0] 2026.11.03
 * New optional `CommentRepo` in `config.ts`: the repository (`owner/name`) that holds the giscus comments. Leave it empty to use `githubName/githubRepo`, as before. Set it when the comments are in another repository, for example after you create a new repository from the template and keep the comments in the old one. `CommentRepoId` must be the ID of the same repository.
 ## [v9] 2026.10.23

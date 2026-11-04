@@ -64,6 +64,8 @@ pnpm install
 
 本仓库没有 lockfile 时，每次构建都会安装 `package.json` 中版本范围内的最新版本。所以框架的小版本和补丁版本会自动生效。`nuxt` 的范围是 `~`，只接受补丁版本，这是框架测试过的 Nuxt 版本。
 
+部署平台可能会缓存 `node_modules`。没有 lockfile 时，`pnpm install` 会保留缓存中的旧版本。所以 `vercel.json` 的安装命令在没有 lockfile 时运行 `pnpm update`。用其他平台时，如果新版本没有生效，请清除构建缓存后重新部署。
+
 后台检测到新的主版本时会显示升级提示。升级前先阅读 [CHANGELOG](https://github.com/yunyuyuan/nuxt-blog/blob/master/CHANGELOG.md)，然后：
 
 - 仓库中没有 `pnpm-lock.yaml` 时：在 GitHub 上编辑 `package.json`，把 `"@yunyuyuan/nuxt-blog": "^9.0.0"` 中的主版本号改为新的版本，例如 `"^10.0.0"`，然后提交。
@@ -136,6 +138,8 @@ These commands need a local environment. All of them are optional.
 ### Upgrade
 
 When this repository has no lockfile, each build installs the newest versions that the ranges in `package.json` allow. So minor and patch versions of the framework take effect automatically. The range of `nuxt` uses `~` and accepts only patch versions: this is the Nuxt version that the framework is tested with.
+
+Deploy platforms can cache `node_modules`. Without a lockfile, `pnpm install` keeps the old versions from the cache. So the install command in `vercel.json` runs `pnpm update` when there is no lockfile. On other platforms, if a new version does not take effect, clear the build cache and deploy again.
 
 The admin pages show a message when a new major version is available. Read the [CHANGELOG](https://github.com/yunyuyuan/nuxt-blog/blob/master/CHANGELOG.md) first, then:
 

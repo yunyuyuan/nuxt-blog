@@ -31,36 +31,53 @@ export type AuthorQueryData = {
 };
 
 /**
- * 一次读取某个提交中一个目录的全部文件（后台的条目列表）。
- * expression 形如 "<commit oid>:public/rebuild/articles"。Blob 过大时 text 会被截断（isTruncated），调用方要单独读取。
+ * 读取某个提交中一个目录的文件名和 git blob oid，不读文件内容（后台的条目列表）。
+ * expression 形如 "<commit oid>:public/rebuild/articles"。
  */
-export const HeadDirectoryQuery = `query ($owner: String!, $name: String!, $expression: String!) {
+export const HeadTreeQuery = `query ($owner: String!, $name: String!, $expression: String!) {
   repository(owner: $owner, name: $name) {
     object(expression: $expression) {
       ... on Tree {
         entries {
           name
           type
-          object {
-            ... on Blob {
-              text
-              isTruncated
-            }
-          }
+          oid
         }
       }
     }
   }
 }`;
-export type HeadDirectoryEntry = {
-  name: string;
-  type: string;
-  object?: { text?: string | null; isTruncated?: boolean } | null;
-};
-export type HeadDirectoryData = {
+export type HeadTreeData = {
   // 目录不存在时 object 为 null
-  repository?: { object?: { entries?: HeadDirectoryEntry[] } | null } | null;
+  repository?: { object?: { entries?: { name: string; type: string; oid: string }[] } | null } | null;
 };
+
+/**
+ * 按 git blob oid 一次读取多个文件的原文。别名 b0、b1… 与 oids 的顺序对应。
+ * 查询文档中只有生成的变量名，oid 通过 variables 传入。
+ * 仓库中没有这个 oid 时，对应的别名为 null；文件过大时 text 被截断（isTruncated）。这两种情况调用方要单独读取。
+ */
+export function buildBlobsQuery(oids: string[]) {
+  const declarations = oids.map((_, i) => `$o${i}: GitObjectID!`).join(", ");
+  const fields = oids.map((_, i) => `    b${i}: object(oid: $o${i}) {
+      ... on Blob {
+        text
+        isTruncated
+      }
+    }`).join("\n");
+  return {
+    query: `query ($owner: String!, $name: String!, ${declarations}) {
+  repository(owner: $owner, name: $name) {
+${fields}
+  }
+}`,
+    variables: Object.fromEntries(oids.map((oid, i) => [`o${i}`, oid])) as Record<string, string>
+  };
+}
+export type BlobsData = {
+  repository?: Record<string, { text?: string | null; isTruncated?: boolean } | null> | null;
+};
+
 export const CreateCommitMutation = `mutation ($input: CreateCommitOnBranchInput!) {
   createCommitOnBranch(input: $input) {
     commit {

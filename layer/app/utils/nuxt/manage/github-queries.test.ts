@@ -1,14 +1,31 @@
 import { describe, expect, it } from "vitest";
 import { encode } from "js-base64";
-import { AuthorQuery, buildCommitInput, CreateCommitMutation } from "./github-queries";
+import { AuthorQuery, buildBlobsQuery, buildCommitInput, CreateCommitMutation, HeadTreeQuery } from "./github-queries";
 
 describe("github queries", () => {
   it("keep every dynamic value in variables", () => {
     // 查询文档是固定字符串，不包含插值
-    for (const doc of [AuthorQuery, CreateCommitMutation]) {
+    for (const doc of [AuthorQuery, CreateCommitMutation, HeadTreeQuery]) {
       expect(doc).not.toContain("${");
       expect(doc).toMatch(/^(query|mutation) \(\$/);
     }
+  });
+
+  it("reads the directory without the file contents", () => {
+    expect(HeadTreeQuery).toMatch(/entries \{\s+name\s+type\s+oid\s+\}/);
+    expect(HeadTreeQuery).not.toContain("text");
+  });
+
+  it("reads the blobs by oid, one alias per oid, with the oids in variables", () => {
+    const oids = ["a".repeat(40), "b".repeat(40)];
+    const { query, variables } = buildBlobsQuery(oids);
+    expect(query).toMatch(/^query \(\$owner: String!, \$name: String!, \$o0: GitObjectID!, \$o1: GitObjectID!\) \{/);
+    expect(query).toContain("b0: object(oid: $o0)");
+    expect(query).toContain("b1: object(oid: $o1)");
+    // oid 只出现在 variables 中
+    expect(query).not.toContain(oids[0]);
+    expect(variables).toEqual({ o0: oids[0], o1: oids[1] });
+    expect(query.split("{").length).toBe(query.split("}").length);
   });
 
   it("builds CreateCommitOnBranchInput", () => {

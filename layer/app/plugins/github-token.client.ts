@@ -2,10 +2,11 @@ import { GithubTokenKey, IgnoredVersionKey, OfficialRepo } from "#layers/nuxt-bl
 import { isDev } from "#layers/nuxt-blog/app/utils/nuxt/constants";
 import { translate } from "#layers/nuxt-blog/app/utils/nuxt/i18n";
 import { getLocalStorage, setLocalStorage } from "#layers/nuxt-blog/app/utils/nuxt/localStorage";
-import { isAuthor } from "#layers/nuxt-blog/app/utils/nuxt/manage/github";
-import { createVersionUpdateModal } from "#layers/nuxt-blog/app/utils/nuxt/manage";
 import { notify } from "#layers/nuxt-blog/app/utils/nuxt/notify";
 
+// 本插件属于 entry，所有访客都会下载。后台代码（GitHub 接口、升级弹窗、diff 弹窗）
+// 只在有 token 时才动态导入。静态导入会把它们打包进 entry，
+// 并让 diff 弹窗中的 import("monaco-editor") 成为 entry 的动态导入
 async function checkVersion() {
   try {
     const response = await fetch(`https://raw.githubusercontent.com/${OfficialRepo}/refs/heads/master/CHANGELOG.md`);
@@ -16,6 +17,7 @@ async function checkVersion() {
     if (latestVersion && latestVersion !== __NB_CURRENT_VERSION__) {
       const ignoredVersion = getLocalStorage(IgnoredVersionKey);
       if (ignoredVersion !== latestVersion) {
+        const { createVersionUpdateModal } = await import("#layers/nuxt-blog/app/utils/nuxt/manage");
         await createVersionUpdateModal(latestVersion);
         // 不会弹出第二次
         setLocalStorage(IgnoredVersionKey, latestVersion);
@@ -43,7 +45,8 @@ export default defineNuxtPlugin({
       const localToken = getLocalStorage(GithubTokenKey);
       if (localToken) {
         // 进入界面时，检查token
-        isAuthor(localToken)
+        import("#layers/nuxt-blog/app/utils/nuxt/manage/github")
+          .then(({ isAuthor }) => isAuthor(localToken))
           .then((res) => {
             notify({
               title: res ? translate("token-verified") : translate("token-unverified"),

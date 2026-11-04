@@ -46,6 +46,16 @@ jobs:
           NB_PRERENDER_STRICT: "true"
       - name: Check static output
         run: test -f .output/public/404.html
+      - name: Check that pages do not prefetch unused code
+        # layer/nuxt.config.ts turns off the manifest prefetch. Without it, every first visit
+        # downloads the admin layout, the editor and monaco (about 900KB gzip)
+        run: |
+          files=$(grep -rl --include='*.html' 'rel="prefetch"' .output/public || true)
+          if [ -n "$files" ]; then
+            echo "::error::These pages have <link rel=\"prefetch\">:"
+            echo "$files" | head -20
+            exit 1
+          fi
   starter:
     # Installs the starter like a new user does: @yunyuyuan/nuxt-blog from a packed tarball
     # instead of the workspace, and no lockfile, so it gets the newest Nuxt that the
@@ -96,6 +106,17 @@ jobs:
           test -f .output/public/404.html
           test -f .output/public/articles/93332711/index.html
           test -d .output/public/sticker
+      - name: Check that pages do not prefetch unused code
+        # Same check as in the check job. This job uses the newest Nuxt, so it also finds
+        # a Nuxt version that no longer uses the build:manifest hook of layer/nuxt.config.ts
+        working-directory: ${{ env.STARTER_DIR }}
+        run: |
+          files=$(grep -rl --include='*.html' 'rel="prefetch"' .output/public || true)
+          if [ -n "$files" ]; then
+            echo "::error::These pages have <link rel=\"prefetch\">:"
+            echo "$files" | head -20
+            exit 1
+          fi
       - name: Check that the dev server pre-bundles the client dependencies
         # Last step: the dev server keeps running in the background until the job ends
         working-directory: ${{ env.STARTER_DIR }}

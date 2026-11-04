@@ -73,6 +73,15 @@ export default defineNuxtConfig({
     inlineStyles: false
   },
 
+  experimental: {
+    defaults: {
+      // NuxtLink 默认在链接进入视口时预取页面代码和 _payload.json。顶栏的链接在每个页面都可见，
+      // 首次访问会下载所有栏目的 payload（/knowledges 的约 70KB gzip）。
+      // 改为鼠标悬停或获得焦点时预取：跳转前仍然提前加载，但不会下载访客不打开的页面
+      nuxtLink: { prefetchOn: { visibility: false, interaction: true } }
+    }
+  },
+
   compatibilityDate: "2025-02-15",
 
   nitro: {
@@ -136,6 +145,17 @@ export default defineNuxtConfig({
       [tailwindNesting]: postcssNesting,
       "tailwindcss": {},
       "autoprefixer": {}
+    }
+  },
+
+  hooks: {
+    // vue-bundle-renderer 把页面所用模块的全部动态导入写成 <link rel="prefetch">，
+    // 包括后台的布局、编辑器和 monaco（gzip 后约 900KB），每个首次访问的访客都会下载。
+    // 关闭 manifest 的 prefetch；跳转所需的代码由上面的 NuxtLink 预取负责
+    "build:manifest": (manifest) => {
+      for (const chunk of Object.values(manifest)) {
+        chunk.prefetch = false;
+      }
     }
   },
 

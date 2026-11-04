@@ -3,11 +3,11 @@ import type { RecordItem } from "#layers/nuxt-blog/app/utils/common/types";
 import { formatTime } from "#layers/nuxt-blog/app/utils/nuxt/format-time";
 import { translate } from "#layers/nuxt-blog/app/utils/nuxt/i18n";
 import { useContentPage } from "#layers/nuxt-blog/app/utils/nuxt/public/detail";
-import { Visitors, Comments, WroteDate } from "#layers/nuxt-blog/app/utils/nuxt/public/components";
+import { Comments, MarkdownHtml, Visitors, WroteDate } from "#layers/nuxt-blog/app/utils/nuxt/public/components";
 import { useCommonSEOTitle } from "#layers/nuxt-blog/app/utils/nuxt/utils";
 import { initViewer } from "#layers/nuxt-blog/app/utils/nuxt/viewer";
 
-const { item, htmlContent, markdownRef, description, visitors } = await useContentPage<RecordItem>();
+const { item, htmlContent, bindMarkdownEl, description, visitors } = await useContentPage<RecordItem>();
 useCommonSEOTitle(() => `${translate("records")}: ${formatTime(item.time, "date")}`, undefined, description);
 
 const root = ref<HTMLElement>();
@@ -36,10 +36,11 @@ initViewer(root);
           />
         </div>
 
-        <article
-          ref="markdownRef"
+        <MarkdownHtml
+          :ref="bindMarkdownEl"
+          tag="article"
+          :html="htmlContent"
           :class="twMerge('--markdown', 'my-16 max-w-full')"
-          v-html="htmlContent"
         />
 
         <div class="border-t border-dark-100 py-6 dark:border-dark-700">

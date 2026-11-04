@@ -1,5 +1,13 @@
 ## [v9.1.1] 2026.11.04
 * The admin list pages download much less from GitHub. Before, they downloaded every item file of the directory. Now they read only the file names and git blob oids, and download only the items that were added or changed after the last deployment. The other items use the metadata in the deployed index. The build writes the oids next to the indexes, in `public/rebuild/json/{tab}.oids.json`. A site built with an earlier version has no oid files; its admin list pages download every item file, as before, until the next build.
+* Pages no longer prefetch code that the visitor may not use. Before, the first visit to any page prefetched the admin layout, the editor and monaco (about 900KB gzip). The admin code is now loaded only when a GitHub token is saved.
+* Links prefetch the next page when the pointer is on them or they have focus, not when they become visible. Before, the header links prefetched the payloads of all the tabs on the first visit (about 90KB gzip).
+* Embedded YouTube and bilibili players load when they are near the viewport (`loading="lazy"`), and videos and audio download only their metadata until they play (`preload="metadata"`).
+* Images in the prerendered pages have `loading="lazy"`. Before, the browser downloaded all the images of an item when it read the HTML, before the lazy image component started. For example, an article with 24 images downloaded 18 images (915KB) on open; now it downloads 9 (415KB). The browser still loads the images that are near the viewport.
+* The comments (giscus) load when the comments section is near the viewport. Before, every page with comments loaded giscus on open (about 19 requests and 116KB).
+* Fix: with Vue 3.5.39 or later, the hydration replaced the body of an item, so embedded players loaded two times. The body now keeps the HTML from the server (new `MarkdownHtml` component).
+* The placeholder of an encrypted image is `/icon.png` (the site icon), not `/favicon.png`. The default `favicon.png` is 178KB.
+* The sticker panel in the editor loads its images when you open it, and only for the groups that you open. Before, the editor downloaded all the stickers (286 images by default) when it opened.
 ## [v9.1.0] 2026.11.03
 * New optional `CommentRepo` in `config.ts`: the repository (`owner/name`) that holds the giscus comments. Leave it empty to use `githubName/githubRepo`, as before. Set it when the comments are in another repository, for example after you create a new repository from the template and keep the comments in the old one. `CommentRepoId` must be the ID of the same repository.
 ## [v9] 2026.10.23

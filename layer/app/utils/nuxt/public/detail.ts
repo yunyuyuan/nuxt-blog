@@ -68,7 +68,7 @@ export async function useContentPage<T extends CommonItem> (onAfterInsertHtml?: 
     }
   }
 
-  const { htmlContent, markdownRef, menuItems } = await useMarkdownParser({
+  const { htmlContent, markdownRef, bindMarkdownEl, menuItems } = await useMarkdownParser({
     mdValueRef: shownMd,
     onAfterInsertHtml,
     destroyFns,
@@ -112,6 +112,7 @@ export async function useContentPage<T extends CommonItem> (onAfterInsertHtml?: 
     htmlContent,
     menuItems,
     markdownRef,
+    bindMarkdownEl,
     description,
     visitors
   };

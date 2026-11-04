@@ -145,6 +145,9 @@ onBeforeUnmount(() => {
 });
 // XXX Why need assign a new value to bind dynamic attribute?
 const attr = ViewerAttr;
+// 加密图片解密前的占位图。用 head 中的站点图标（128x128，约 6KB），浏览器已经下载过；
+// 以前用 /favicon.png，框架自带的这张有 178KB
+const encryptedPlaceholder = withBase("/icon.png");
 </script>
 
 <template>
@@ -158,8 +161,11 @@ const attr = ViewerAttr;
     :title="title"
     @click="containerClick"
   >
+    <!-- 只在预渲染的 HTML 中输出，供搜索引擎读取，水合时会被移除。
+         加 loading="lazy"：首屏以外的图片在水合前不下载 -->
     <img
       v-if="isPrerender && !isEncryptedImg"
+      loading="lazy"
       :src="props.src"
       :alt="alt"
     >
@@ -187,7 +193,7 @@ const attr = ViewerAttr;
       :style="imgStyle"
       :alt="alt"
       :[attr]="viewer || null"
-      :src="isEncryptedImg ? withBase('/favicon.png') : props.src"
+      :src="isEncryptedImg ? encryptedPlaceholder : props.src"
       @error="loadFinish(true)"
       @load="loadFinish(false)"
       @abort="loadFinish(true)"

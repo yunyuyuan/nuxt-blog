@@ -1,4 +1,5 @@
 import { Calendar, Eye, FileText } from "lucide-vue-next";
+import { h } from "vue";
 import type { CommonItem } from "../../common/types";
 import { formatTime } from "../format-time";
 import { watchUntil } from "../utils";
@@ -41,6 +42,23 @@ export function WroteDate(props: { item: CommonItem }) {
   );
 }
 
+/**
+ * 输出正文 HTML，用来代替模板中的 v-html。
+ * Vue 3.5.39 起，水合时会对模板中的动态 prop 重新调用 patchProp（vuejs/core#9083）。v-html 编译出的
+ * innerHTML 也是动态 prop，所以服务端输出的正文会被重新赋值一次，所有子节点重建，iframe 因此重新加载。
+ * 渲染函数创建的 vnode 没有 dynamicProps，水合时保留服务端的 DOM；html 变化时，Vue 照常比较新旧值后更新。
+ * 这里不用 JSX，避免 JSX 插件生成 patchFlag。
+ */
+export const MarkdownHtml = defineComponent({
+  name: "MarkdownHtml",
+  props: {
+    tag: { type: String, default: "div" },
+    html: { type: String, required: true }
+  },
+  setup (props) {
+    return () => h(props.tag, { innerHTML: props.html });
+  }
+});
 
 export const Comments = defineComponent({
   name: 'Comments',
@@ -50,6 +68,7 @@ export const Comments = defineComponent({
     const { themeMode } = useThemeMode();
     const { i18nCode } = useI18nCode();
     const giscusLoaded = ref(false);
+    const sectionRef = ref<HTMLElement | null>(null);
     const containerRef = ref<HTMLElement | null>(null);
 
     const updateGiscusConfig = (config: object) => {
@@ -100,13 +119,33 @@ export const Comments = defineComponent({
       giscusLoaded.value = true;
     };
 
+    const startGiscus = () => watchUntil(themeMode, loadGiscus,
+      { immediate: true },
+      themeMode => !!themeMode,
+      "cancelAfterUntil"
+    );
+
+    // 评论区在页面底部，滚动到附近时才加载 giscus（文章页约 19 个请求、116KB）。
+    // 不用 giscus 的 data-loading="lazy"：那样 iframe 会先创建，加载前切换主题或语言时，
+    // 发出的 postMessage 会丢失；这里在插入 client.js 时就用当时的主题和语言
+    let observer: IntersectionObserver | undefined;
     onMounted(() => {
-      watchUntil(themeMode, loadGiscus,
-        { immediate: true },
-        themeMode => !!themeMode,
-        "cancelAfterUntil"
-      );
+      if (!sectionRef.value) return;
+      if (typeof IntersectionObserver === "undefined") {
+        startGiscus();
+        return;
+      }
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          observer?.disconnect();
+          observer = undefined;
+          startGiscus();
+        }
+      }, { rootMargin: "600px 0px" });
+      // 观察整个评论区：giscus 的容器在加载前高度为 0
+      observer.observe(sectionRef.value);
     });
+    onBeforeUnmount(() => observer?.disconnect());
 
     watch(i18nCode, (locale) => {
       if (giscusLoaded.value) {
@@ -125,7 +164,7 @@ export const Comments = defineComponent({
     });
 
     return () => (
-      <section>
+      <section ref={sectionRef}>
         <h3 class="mb-4 text-xl font-medium text-dark-800 dark:text-dark-200">
           {translate("comments")}
         </h3>

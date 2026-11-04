@@ -46,6 +46,16 @@ jobs:
           NB_PRERENDER_STRICT: "true"
       - name: Check static output
         run: test -f .output/public/404.html
+      - name: Check that pages do not prefetch unused code
+        # layer/nuxt.config.ts turns off the manifest prefetch. Without it, every first visit
+        # downloads the admin layout, the editor and monaco (about 900KB gzip)
+        run: |
+          files=$(grep -rl --include='*.html' 'rel="prefetch"' .output/public || true)
+          if [ -n "$files" ]; then
+            echo "::error::These pages have <link rel=\"prefetch\">:"
+            echo "$files" | head -20
+            exit 1
+          fi
   starter:
     # Installs the starter like a new user does: @yunyuyuan/nuxt-blog from a packed tarball
     # instead of the workspace, and no lockfile, so it gets the newest Nuxt that the

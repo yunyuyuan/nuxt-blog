@@ -79,24 +79,26 @@ export async function parseMarkdown(text: string, baseURL: string = "/", options
         return `<h${depth}${dataLine(token)}><sup class="fake-head" id="${url}"></sup><a class="header-link" href="#${url}">${text}</a></h${depth}>`;
       },
       image({ href, text }) {
+        // 预渲染的 HTML 中图片都加 loading="lazy"：水合后正文图片才换成懒加载组件，
+        // 在这之前浏览器会下载页面中所有的 <img>，包括首屏以外的
         // sticker
         if (text === "sticker") {
           const matcher = href?.match(/^(.*?)\/(\d*)$/);
           if (matcher) {
             const [, name, tone] = matcher;
-            return `<img src="${attrUrl(withBase(`/sticker/${name}/${tone}.png`, baseURL))}" alt="${attr(text)}"/>`;
+            return `<img loading="lazy" src="${attrUrl(withBase(`/sticker/${name}/${tone}.png`, baseURL))}" alt="${attr(text)}"/>`;
           }
         }
         const matcher = text?.match(/^(.*?)\[(.*?) x (.*?)]$/);
         if (!matcher) {
-          return `<span class="image-container"><img ${ViewerAttr} alt="${attr(text)}" title="${attr(text)}" src="${attrUrl(href)}"/><small class="desc">${instance.parseInline(text)}</small></span>`;
+          return `<span class="image-container"><img ${ViewerAttr} loading="lazy" alt="${attr(text)}" title="${attr(text)}" src="${attrUrl(href)}"/><small class="desc">${instance.parseInline(text)}</small></span>`;
         }
         // with dimension
         const [, alt_, w, h] = matcher;
         const justHeight = !w;
         return `<span class="image-container${
           justHeight ? " just-height" : ""
-        }"><img ${ViewerAttr} alt="${attr(alt_)}" title="${attr(alt_)}" style="${
+        }"><img ${ViewerAttr} loading="lazy" alt="${attr(alt_)}" title="${attr(alt_)}" style="${
           w ? `width: ${attr(w)} !important;` : ""
         }${
           h ? `height: ${attr(h)} !important;` : ""
@@ -235,7 +237,7 @@ export async function parseMarkdown(text: string, baseURL: string = "/", options
         renderer({ text, title, href }) {
           text = this.parser.parseInline(text);
           return `<div class="embed-media youtube">
-                      <iframe src="${attrUrl(href)}" title="${attr(title)}" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                      <iframe loading="lazy" src="${attrUrl(href)}" title="${attr(title)}" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                       <small class="desc">${text}</small>
                   </div>`;
         }
@@ -259,7 +261,7 @@ export async function parseMarkdown(text: string, baseURL: string = "/", options
         renderer({ text, title, href }) {
           text = this.parser.parseInline(text);
           return `<div class="embed-media bili">
-                      <iframe src="${attrUrl(`${href}&autoplay=0`)}" title="${attr(title)}" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                      <iframe loading="lazy" src="${attrUrl(`${href}&autoplay=0`)}" title="${attr(title)}" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                       <small class="desc">${text}</small>
                   </div>`;
         }
@@ -283,7 +285,7 @@ export async function parseMarkdown(text: string, baseURL: string = "/", options
         renderer({ text, poster, href }) {
           text = this.parser.parseInline(text);
           return `<div class="embed-media vanilla-video">
-                      <video src="${attrUrl(href)}" controls${poster ? ` poster="${attrUrl(poster)}"` : ""}></video>
+                      <video src="${attrUrl(href)}" preload="metadata" controls${poster ? ` poster="${attrUrl(poster)}"` : ""}></video>
                       <small class="desc">${text}</small>
                   </div>`;
         }
@@ -306,7 +308,7 @@ export async function parseMarkdown(text: string, baseURL: string = "/", options
         renderer({ text, href }) {
           text = this.parser.parseInline(text);
           return `<div class="embed-media vanilla-audio">
-                      <audio src="${attrUrl(href)}" controls></audio>
+                      <audio src="${attrUrl(href)}" preload="metadata" controls></audio>
                       <small class="desc">${text}</small>
                   </div>`;
         }

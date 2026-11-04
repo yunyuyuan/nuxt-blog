@@ -41,7 +41,6 @@ export function WroteDate(props: { item: CommonItem }) {
   );
 }
 
-
 export const Comments = defineComponent({
   name: 'Comments',
   setup() {
@@ -50,6 +49,7 @@ export const Comments = defineComponent({
     const { themeMode } = useThemeMode();
     const { i18nCode } = useI18nCode();
     const giscusLoaded = ref(false);
+    const sectionRef = ref<HTMLElement | null>(null);
     const containerRef = ref<HTMLElement | null>(null);
 
     const updateGiscusConfig = (config: object) => {
@@ -100,13 +100,33 @@ export const Comments = defineComponent({
       giscusLoaded.value = true;
     };
 
+    const startGiscus = () => watchUntil(themeMode, loadGiscus,
+      { immediate: true },
+      themeMode => !!themeMode,
+      "cancelAfterUntil"
+    );
+
+    // 评论区在页面底部，滚动到附近时才加载 giscus（文章页约 19 个请求、116KB）。
+    // 不用 giscus 的 data-loading="lazy"：那样 iframe 会先创建，加载前切换主题或语言时，
+    // 发出的 postMessage 会丢失；这里在插入 client.js 时就用当时的主题和语言
+    let observer: IntersectionObserver | undefined;
     onMounted(() => {
-      watchUntil(themeMode, loadGiscus,
-        { immediate: true },
-        themeMode => !!themeMode,
-        "cancelAfterUntil"
-      );
+      if (!sectionRef.value) return;
+      if (typeof IntersectionObserver === "undefined") {
+        startGiscus();
+        return;
+      }
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          observer?.disconnect();
+          observer = undefined;
+          startGiscus();
+        }
+      }, { rootMargin: "600px 0px" });
+      // 观察整个评论区：giscus 的容器在加载前高度为 0
+      observer.observe(sectionRef.value);
     });
+    onBeforeUnmount(() => observer?.disconnect());
 
     watch(i18nCode, (locale) => {
       if (giscusLoaded.value) {
@@ -125,7 +145,7 @@ export const Comments = defineComponent({
     });
 
     return () => (
-      <section>
+      <section ref={sectionRef}>
         <h3 class="mb-4 text-xl font-medium text-dark-800 dark:text-dark-200">
           {translate("comments")}
         </h3>

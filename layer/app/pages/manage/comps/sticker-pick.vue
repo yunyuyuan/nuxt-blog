@@ -10,6 +10,18 @@ const emits = defineEmits({
 const stickersList = toRaw(useRuntimeConfig().public.stickers);
 const stickersTab = Object.keys(stickersList) as (keyof typeof stickersList)[];
 const currentStickerTab = ref(stickersTab[0]!);
+// common-dropdown 用 v-show，内容在编辑器加载时就会渲染。如果直接渲染全部表情，
+// 打开编辑页就会下载所有图片（默认 286 张，约 1.2MB）。
+// 改为第一次打开面板时才渲染，并且只渲染点开过的分类
+const opened = ref(false);
+const visitedTabs = reactive(new Set<string>());
+watch(showStickers, (show) => {
+  if (show) {
+    opened.value = true;
+    visitedTabs.add(currentStickerTab.value);
+  }
+}, { immediate: true });
+watch(currentStickerTab, k => visitedTabs.add(k));
 const stickerTranslateY = computed(() => {
   return `translateY(-${
     (stickersTab.indexOf(currentStickerTab.value) * 100) / stickersTab.length
@@ -22,7 +34,10 @@ const stickerTranslateY = computed(() => {
     v-model:show="showStickers"
     :wrap-class="$style.dropdown"
   >
-    <div class=" flex h-48 max-w-[500px]">
+    <div
+      v-if="opened"
+      class=" flex h-48 max-w-[500px]"
+    >
       <div class="flex h-full flex-col border-r">
         <button
           v-for="k in stickersTab"
@@ -58,18 +73,20 @@ const stickerTranslateY = computed(() => {
               height: `${100/stickersTab.length}%`
             }"
           >
-            <button
-              v-for="idx in stickersList[k]"
-              :key="idx"
-              :title="`${k}/${idx}`"
-              class="group shrink-0 rounded p-1 transition hover:bg-dark-100 dark:hover:bg-dark-700"
-              @click="emits('insertSticker', `![sticker](${k}/${idx})`);showStickers=false"
-            >
-              <img
-                class="size-8 object-contain transition group-hover:scale-105"
-                :src="withBase(`/sticker/${k}/${idx}.png`)"
+            <template v-if="visitedTabs.has(k)">
+              <button
+                v-for="idx in stickersList[k]"
+                :key="idx"
+                :title="`${k}/${idx}`"
+                class="group shrink-0 rounded p-1 transition hover:bg-dark-100 dark:hover:bg-dark-700"
+                @click="emits('insertSticker', `![sticker](${k}/${idx})`);showStickers=false"
               >
-            </button>
+                <img
+                  class="size-8 object-contain transition group-hover:scale-105"
+                  :src="withBase(`/sticker/${k}/${idx}.png`)"
+                >
+              </button>
+            </template>
           </div>
         </div>
       </div>

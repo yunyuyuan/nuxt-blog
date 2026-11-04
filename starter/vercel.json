@@ -1,7 +1,7 @@
 {
     "framework": null,
     "buildCommand": "npx --yes pnpm@9.13.2 build",
-    "installCommand": "npx --yes pnpm@9.13.2 install",
+    "installCommand": "if [ -f pnpm-lock.yaml ]; then npx --yes pnpm@9.13.2 install; else npx --yes pnpm@9.13.2 update --no-save; fi",
     "github": {
         "silent": true,
         "autoJobCancelation": true

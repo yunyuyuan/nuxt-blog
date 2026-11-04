@@ -7,6 +7,14 @@ import { describe, expect, it } from "vitest";
 // (ERR_INVALID_THIS). So starter/vercel.json runs a fixed pnpm through npx.
 // That version must be the same as `packageManager` in starter/package.json,
 // which GitHub Pages (pnpm/action-setup) uses.
+//
+// Vercel also restores node_modules from the build cache. Without a lockfile,
+// `pnpm install` keeps the versions that are in node_modules if they are in
+// the range, so a new release of the framework does not take effect.
+// `pnpm update` installs the newest versions in the range, as a fresh install
+// does. `--no-save` keeps the ranges in package.json. If the site has a
+// lockfile, the install command keeps `pnpm install`, so that the lockfile
+// controls the versions.
 const starter = resolve(__dirname, "../starter");
 const readJson = (name: string) =>
   JSON.parse(readFileSync(resolve(starter, name), "utf-8"));
@@ -20,7 +28,13 @@ describe("starter/vercel.json", () => {
   });
 
   it("installs with the pnpm in packageManager", () => {
-    expect(vercel.installCommand).toBe(`npx --yes ${pnpm} install`);
+    expect(vercel.installCommand).toBe(
+      `if [ -f pnpm-lock.yaml ]; then npx --yes ${pnpm} install; else npx --yes ${pnpm} update --no-save; fi`
+    );
+  });
+
+  it("install command is short enough for Vercel (256 characters)", () => {
+    expect(vercel.installCommand.length).toBeLessThanOrEqual(256);
   });
 
   it("builds with the pnpm in packageManager", () => {

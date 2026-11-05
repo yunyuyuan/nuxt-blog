@@ -2,7 +2,7 @@ name: Deploy Nuxt site to Pages
 
 on:
   push:
-    branches: ["main", "master", "blog"]
+    branches: ["main", "master"]
   workflow_dispatch:
 
 permissions:
@@ -17,10 +17,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Only run when TARGET_BRANCH is unset, or the current branch matches it.
+    # This repository (yunyuyuan/nuxt-blog) does not deploy; forks do.
     # When this condition is false the job is *skipped* (not failed), so no
     # failure notification is sent.
-    if: ${{ vars.TARGET_BRANCH == '' || github.ref == format('refs/heads/{0}', vars.TARGET_BRANCH) }}
+    if: ${{ github.repository != 'yunyuyuan/nuxt-blog' }}
     env:
       # Base URL for the deployed site.
       # Use "/" for a user/organization site or a site served from the domain root.
